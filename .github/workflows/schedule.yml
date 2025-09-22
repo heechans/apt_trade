@@ -29,9 +29,15 @@ jobs:
         env:
           API_KEY: ${{ secrets.SERVICE_KEY }}
         run: python fetch_data.py
+        ls -lh apt_trade.db # DB 파일 크기 확인용 (선택사항)
 
-      - name: Commit and push DB file # 이 부분을 추가하세요
+      - name: Convert DB to SQL file # 이 부분을 추가하세요
+        run: |
+          sqlite3 apt_trade.db .dump > apt_trade.sql
+          ls -lh apt_trade.sql # SQL 파일 크기 확인용 (선택사항)
+
+      - name: Commit and push DB & SQL files # 이 부분도 수정하세요
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "feat: Update apartment trade data DB"
-          file_pattern: 'apt_trade.db' # apt_trade.db 파일만 커밋하도록 설정
+          commit_message: "feat: Update apartment trade data DB and SQL files"
+          file_pattern: 'apt_trade.db apt_trade.sql' # apt_trade.sql 추가
