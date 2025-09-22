@@ -17,7 +17,7 @@ params = {
     'LAWD_CD': LAWD_CD,
     'DEAL_YMD': DEAL_YMD,
     'pageNo': '1',
-    'numOfRows': '100'
+    'numOfRows': '10000'
 }
 
 # DB 파일 경로
@@ -28,40 +28,54 @@ def fetch_and_save_data():
         response = requests.get(url, params=params)
         response.raise_for_status()
 
-        # XML 파싱
-        root = ET.fromstring(response.content)
+        # XML 파싱 (네임스페이스 제거)
+        xml_string = response.content.decode('utf-8')
+        root = ET.fromstring(xml_string)
+
+        # XML 구조에 맞게 <item> 태그 찾기
+        items_node = root.find('.//items')
+        if items_node is None:
+            print("XML structure not as expected: no <items> tag found.")
+            return
+
         data_list = []
-        for item in root.findall('.//{http://www.w3.org/2005/Atom}item'):
+        for item in items_node.findall('item'):
             data = {}
             for child in item:
-                data[child.tag] = child.text
+                # 불필요한 공백 제거
+                data[child.tag] = child.text.strip() if child.text else ''
             data_list.append(data)
 
         if not data_list:
             print("No data received from API.")
             return
 
-        # SQLite DB에 저장
+        # SQLite DB에 연결 및 저장
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
         # 테이블 생성
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS apartment_trades (
-                거래금액 TEXT, 건축년도 TEXT, 년 TEXT, 법정동 TEXT, 아파트 TEXT,
-                월 TEXT, 일 TEXT, 전용면적 TEXT, 지번 TEXT, 지역코드 TEXT, 층 TEXT,
-                UNIQUE(거래금액, 건축년도, 년, 법정동, 아파트, 전용면적, 층) ON CONFLICT REPLACE
-            )
-        ''')
+        # XML <item> 태그의 모든 자식 태그를 열 이름으로 사용
+        if data_list:
+            columns = data_list[0].keys()
+            column_defs = [f'"{col}" TEXT' for col in columns]
+            
+            # 고유성 보장을 위한 UNIQUE 제약조건 추가
+            unique_cols = ['aptNm', 'buildYear', 'dealAmount', 'excluUseAr', 'floor', 'dealYear', 'dealMonth', 'dealDay']
+            unique_constraint = ', '.join([f'"{col}"' for col in unique_cols])
+            
+            create_table_sql = f'''
+                CREATE TABLE IF NOT EXISTS apartment_trades (
+                    {', '.join(column_defs)},
+                    UNIQUE({unique_constraint}) ON CONFLICT REPLACE
+                )
+            '''
+            cursor.execute(create_table_sql)
 
         # 데이터 삽입
-        columns = [
-            '거래금액', '건축년도', '년', '법정동', '아파트',
-            '월', '일', '전용면적', '지번', '지역코드', '층'
-        ]
-        
+        columns = list(data_list[0].keys())
         insert_sql = f'''
-            INSERT OR REPLACE INTO apartment_trades ({', '.join(columns)}) 
+            INSERT OR REPLACE INTO apartment_trades ({', '.join([f'"{col}"' for col in columns])}) 
             VALUES ({', '.join(['?' for _ in columns])})
         '''
         
@@ -80,5 +94,5 @@ def fetch_and_save_data():
     except sqlite3.Error as e:
         print(f"Database error: {e}")
 
-if __name__ == "__main__':
+if __name__ == '__main__':
     fetch_and_save_data()
