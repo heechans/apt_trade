@@ -1,8 +1,6 @@
-PRAGMA foreign_keys=OFF;
-BEGIN TRANSACTION;
 CREATE TABLE apartment_trades (
-                    `aptDong` TEXT, `aptNm` TEXT, `aptSeq` TEXT, `bonbun` TEXT, `bubun` TEXT, `buildYear` TEXT, `buyerGbn` TEXT, `cdealDay` TEXT, `cdealType` TEXT, `dealAmount` TEXT, `dealDay` TEXT, `dealMonth` TEXT, `dealYear` TEXT, `dealingGbn` TEXT, `estateAgentSggNm` TEXT, `excluUseAr` TEXT, `floor` TEXT, `jibun` TEXT, `landCd` TEXT, `landLeaseholdGbn` TEXT, `rgstDate` TEXT, `roadNm` TEXT, `roadNmBonbun` TEXT, `roadNmBubun` TEXT, `roadNmCd` TEXT, `roadNmSeq` TEXT, `roadNmSggCd` TEXT, `roadNmbCd` TEXT, `sggCd` TEXT, `slerGbn` TEXT, `umdCd` TEXT, `umdNm` TEXT,
-                    UNIQUE(`aptNm`, `buildYear`, `dealAmount`, `excluUseAr`, `floor`, `dealYear`, `dealMonth`, `dealDay`)
+                    `aptDong` TEXT, `aptNm` TEXT(255), `aptSeq` TEXT, `bonbun` TEXT, `bubun` TEXT, `buildYear` TEXT, `buyerGbn` TEXT, `cdealDay` TEXT, `cdealType` TEXT, `dealAmount` TEXT, `dealDay` TEXT, `dealMonth` TEXT, `dealYear` TEXT, `dealingGbn` TEXT, `estateAgentSggNm` TEXT, `excluUseAr` TEXT, `floor` TEXT, `jibun` TEXT, `landCd` TEXT, `landLeaseholdGbn` TEXT, `rgstDate` TEXT, `roadNm` TEXT, `roadNmBonbun` TEXT, `roadNmBubun` TEXT, `roadNmCd` TEXT, `roadNmSeq` TEXT, `roadNmSggCd` TEXT, `roadNmbCd` TEXT, `sggCd` TEXT, `slerGbn` TEXT, `umdCd` TEXT, `umdNm` TEXT,
+                    UNIQUE(`aptNm`(255), `buildYear`, `dealAmount`, `excluUseAr`, `floor`, `dealYear`, `dealMonth`, `dealDay`)
                 );
 INSERT INTO apartment_trades VALUES('','개포주공5단지','11680-391','0187','0000','1983','개인','','','371,500','18','9','2025','중개거래','서울 강남구','83.17','4','187','1','N','','삼성로4길','00017','00000','4166412','01','11680','0','11680','개인','10300','개포동');
 INSERT INTO apartment_trades VALUES('','강남브리즈힐(토지임대부아파트)','11680-4341','0618','0000','2014','개인','25.09.19','O','96,000','18','9','2025','중개거래','서울 강남구','74.04','7','618','1','Y','','자곡로3길','00045','00000','4166878','01','11680','0','11680','개인','11200','자곡동');
@@ -41,4 +39,3 @@ INSERT INTO apartment_trades VALUES('','강남엘에이치1단지','11680-4199',
 INSERT INTO apartment_trades VALUES('','래미안라클래시','11680-5004','0189','0000','2021','개인','','','630,000','3','9','2025','중개거래','서울 강남구','136.95','7','189','1','N','','삼성로','00651','00000','3122005','00','11680','','11680','개인','10500','삼성동');
 INSERT INTO apartment_trades VALUES('','세곡푸르지오','11680-4090','0533','0000','2012','개인','','','158,500','2','9','2025','중개거래','서울 강남구','74.74','5','533','1','N','','자곡로','00021','00000','3122014','01','11680','0','11680','개인','11100','세곡동');
 INSERT INTO apartment_trades VALUES('201','역삼I''PARK','11680-3679','0713','0011','2006','개인','','','77,000','1','9','2025','중개거래','서울 강남구','28.246','2','713-11','1','N','25.09.12','역삼로','00307','00000','3122008','01','11680','0','11680','개인','10100','역삼동');
-COMMIT;
