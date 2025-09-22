@@ -2,6 +2,7 @@ name: Fetch and Save Apartment Data
 
 on:
   schedule:
+    # 매일 한국 시간 기준 오전 9시 정각에 실행
     - cron: '0 0 * * *'
   workflow_dispatch:
 
@@ -35,10 +36,22 @@ jobs:
           sqlite3 apt_trade.db .dump > apt_trade.sql
           ls -lh apt_trade.sql
 
-      - name: Replace double quotes with backticks # 이 부분을 추가하세요
+      - name: Convert to MySQL-compatible SQL
         run: |
+          # 1. SQLite 고유 구문 삭제
+          sed -i '/^PRAGMA /d' apt_trade.sql
+          sed -i '/^BEGIN TRANSACTION;/d' apt_trade.sql
+          sed -i '/^COMMIT;/d' apt_trade.sql
+          
+          # 2. 모든 겹따옴표를 백틱으로 변경
           sed -i 's/"/`/g' apt_trade.sql
-          sed -i 's/ ON CONFLICT REPLACE//' apt_trade.sql
+          
+          # 3. ON CONFLICT REPLACE 구문 삭제 (MySQL에서 오류 발생)
+          sed -i 's/ ON CONFLICT REPLACE//g' apt_trade.sql
+
+          # 4. BLOB/TEXT 컬럼에 키 길이 지정 및 UNIQUE 구문 수정 (MySQL 오류 해결)
+          sed -i 's/`aptNm` TEXT, `/`aptNm` TEXT(255), `/g' apt_trade.sql
+          sed -i 's/UNIQUE(`aptNm`/UNIQUE(`aptNm`(255)/g' apt_trade.sql
           
       - name: Commit and push DB & SQL files
         uses: stefanzweifel/git-auto-commit-action@v5
