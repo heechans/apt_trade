@@ -27,3 +27,9 @@ jobs:
         env:
           API_KEY: ${{ secrets.SERVICE_KEY }}
         run: python fetch_data.py
+
+      - name: Commit and push DB file # 이 부분을 추가하세요
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "feat: Update apartment trade data DB"
+          file_pattern: 'apt_trade.db' # apt_trade.db 파일만 커밋하도록 설정
