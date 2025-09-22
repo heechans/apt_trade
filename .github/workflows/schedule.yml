@@ -38,7 +38,7 @@ jobs:
 
       - name: Convert to MySQL-compatible SQL
         run: |
-          # 1. SQLite 고유 구문 삭제
+          # 1. SQLite 고유 구문 삭제 (PRAGMA, BEGIN TRANSACTION, COMMIT)
           sed -i '/^PRAGMA /d' apt_trade.sql
           sed -i '/^BEGIN TRANSACTION;/d' apt_trade.sql
           sed -i '/^COMMIT;/d' apt_trade.sql
@@ -50,9 +50,20 @@ jobs:
           sed -i 's/ ON CONFLICT REPLACE//g' apt_trade.sql
 
           # 4. BLOB/TEXT 컬럼에 키 길이 지정 및 UNIQUE 구문 수정 (MySQL 오류 해결)
-          sed -i 's/`aptNm` TEXT, `/`aptNm` TEXT(255), `/g' apt_trade.sql
+          # aptNm 컬럼의 TEXT 타입을 VARCHAR(255)로 변경
+          sed -i 's/`aptNm` TEXT/`aptNm` VARCHAR(255)/g' apt_trade.sql
+          
+          # UNIQUE 제약 조건 내의 aptNm에 키 길이 지정
           sed -i 's/UNIQUE(`aptNm`/UNIQUE(`aptNm`(255)/g' apt_trade.sql
           
+          # (추가) 다른 TEXT 컬럼들도 MySQL 호환 타입으로 변경
+          sed -i 's/`dealAmount` TEXT/`dealAmount` VARCHAR(255)/g' apt_trade.sql
+          sed -i 's/`excluUseAr` TEXT/`excluUseAr` VARCHAR(255)/g' apt_trade.sql
+          
+          # (추가) UNIQUE 제약 조건 내의 다른 컬럼에 키 길이 지정
+          sed -i 's/`dealAmount`,/`dealAmount`(255),/g' apt_trade.sql
+          sed -i 's/`excluUseAr`,/`excluUseAr`(255),/g' apt_trade.sql
+
       - name: Commit and push DB & SQL files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
