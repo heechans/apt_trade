@@ -2,16 +2,14 @@ name: Fetch and Save Apartment Data
 
 on:
   schedule:
-    # 매일 한국 시간 기준 오전 9시 정각에 실행
-    - cron: '0 0 * * *' # UTC 기준, 한국시간(KST)은 9시간 빠름
-  workflow_dispatch: # 이 부분을 추가하세요
-
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 이 부분을 추가하세요
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -28,13 +26,14 @@ jobs:
       - name: Run Python script
         env:
           API_KEY: ${{ secrets.SERVICE_KEY }}
-        run: python fetch_data.py
-        ls -lh apt_trade.db # DB 파일 크기 확인용 (선택사항)
+        run: |
+          python fetch_data.py
+          ls -lh apt_trade.db 
 
       - name: Convert DB to SQL file # 이 부분을 추가하세요
         run: |
           sqlite3 apt_trade.db .dump > apt_trade.sql
-          ls -lh apt_trade.sql # SQL 파일 크기 확인용 (선택사항)
+          ls -lh apt_trade.sql 
 
       - name: Commit and push DB & SQL files # 이 부분도 수정하세요
         uses: stefanzweifel/git-auto-commit-action@v5
