@@ -56,13 +56,15 @@ jobs:
           # UNIQUE 제약 조건 내의 aptNm에 키 길이 지정
           sed -i 's/UNIQUE(`aptNm`/UNIQUE(`aptNm`(255)/g' apt_trade.sql
           
-          # (추가) 다른 TEXT 컬럼들도 MySQL 호환 타입으로 변경
+          # 다른 TEXT 컬럼들도 MySQL 호환 타입으로 변경
           sed -i 's/`dealAmount` TEXT/`dealAmount` VARCHAR(255)/g' apt_trade.sql
           sed -i 's/`excluUseAr` TEXT/`excluUseAr` VARCHAR(255)/g' apt_trade.sql
+          sed -i 's/`buildYear` TEXT/`buildYear` VARCHAR(255)/g' apt_trade.sql
           
-          # (추가) UNIQUE 제약 조건 내의 다른 컬럼에 키 길이 지정
+          # UNIQUE 제약 조건 내의 다른 컬럼에 키 길이 지정
           sed -i 's/`dealAmount`,/`dealAmount`(255),/g' apt_trade.sql
           sed -i 's/`excluUseAr`,/`excluUseAr`(255),/g' apt_trade.sql
+          sed -i 's/`buildYear`,/`buildYear`(255),/g' apt_trade.sql
 
       - name: Commit and push DB & SQL files
         uses: stefanzweifel/git-auto-commit-action@v5
