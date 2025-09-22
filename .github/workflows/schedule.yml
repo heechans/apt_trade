@@ -2,6 +2,7 @@ name: Fetch and Save Apartment Data
 
 on:
   schedule:
+    # 매일 한국 시간 기준 오전 9시 정각에 실행
     - cron: '0 0 * * *'
   workflow_dispatch:
 
@@ -37,37 +38,56 @@ jobs:
 
       - name: Convert to MySQL-compatible SQL
         run: |
-          # 1. SQLite 고유 구문 삭제 (PRAGMA, BEGIN TRANSACTION, COMMIT)
-          sed -i '/^PRAGMA /d' apt_trade.sql
-          sed -i '/^BEGIN TRANSACTION;/d' apt_trade.sql
-          sed -i '/^COMMIT;/d' apt_trade.sql
-          
-          # 2. 모든 겹따옴표를 백틱으로 변경
-          sed -i 's/"/`/g' apt_trade.sql
-          
-          # 3. ON CONFLICT REPLACE 구문 삭제 (MySQL에서 오류 발생)
-          sed -i 's/ ON CONFLICT REPLACE//g' apt_trade.sql
+          # SQLite SQL 파일을 MySQL 호환 형식으로 완벽하게 변환
+          awk '
+          BEGIN {
+              gsub(/ /, "", line)
+          }
+          /CREATE TABLE/ {
+              # CREATE TABLE 구문 변환
+              # 모든 텍스트 컬럼을 VARCHAR(255)로 변경하고, 겹따옴표를 백틱으로 변경
+              gsub(/`aptNm` TEXT,/, "`aptNm` VARCHAR(255),", $0);
+              gsub(/`buildYear` TEXT,/, "`buildYear` VARCHAR(255),", $0);
+              gsub(/`dealAmount` TEXT,/, "`dealAmount` VARCHAR(255),", $0);
+              gsub(/`excluUseAr` TEXT,/, "`excluUseAr` VARCHAR(255),", $0);
+              gsub(/`floor` TEXT,/, "`floor` VARCHAR(255),", $0);
+              gsub(/`dealYear` TEXT,/, "`dealYear` VARCHAR(255),", $0);
+              gsub(/`dealMonth` TEXT,/, "`dealMonth` VARCHAR(255),", $0);
+              gsub(/`dealDay` TEXT,/, "`dealDay` VARCHAR(255),", $0);
+              
+              # UNIQUE 구문 변환
+              gsub(/UNIQUE(`aptNm`/, "UNIQUE(`aptNm`(255)", $0);
+              gsub(/, `buildYear`/, ", `buildYear`(255)", $0);
+              gsub(/, `dealAmount`/, ", `dealAmount`(255)", $0);
+              gsub(/, `excluUseAr`/, ", `excluUseAr`(255)", $0);
+              gsub(/, `floor`/, ", `floor`(255)", $0);
+              gsub(/, `dealYear`/, ", `dealYear`(255)", $0);
+              gsub(/, `dealMonth`/, ", `dealMonth`(255)", $0);
+              gsub(/, `dealDay`/, ", `dealDay`(255)", $0);
+              
+              # SQLite 고유 구문 제거
+              gsub(/ON CONFLICT REPLACE/,"", $0);
 
-          # 4. CREATE TABLE 문에서 TEXT를 VARCHAR(255)로 변경
-          sed -i 's/`aptNm` TEXT/`aptNm` VARCHAR(255)/g' apt_trade.sql
-          sed -i 's/`buildYear` TEXT/`buildYear` VARCHAR(255)/g' apt_trade.sql
-          sed -i 's/`dealAmount` TEXT/`dealAmount` VARCHAR(255)/g' apt_trade.sql
-          sed -i 's/`excluUseAr` TEXT/`excluUseAr` VARCHAR(255)/g' apt_trade.sql
-          sed -i 's/`floor` TEXT/`floor` VARCHAR(255)/g' apt_trade.sql
-          sed -i 's/`dealYear` TEXT/`dealYear` VARCHAR(255)/g' apt_trade.sql
-          sed -i 's/`dealMonth` TEXT/`dealMonth` VARCHAR(255)/g' apt_trade.sql
-          sed -i 's/`dealDay` TEXT/`dealDay` VARCHAR(255)/g' apt_trade.sql
+              # 기타
+              gsub(/"/, "`", $0);
+              
+              print
+              next
+          }
+          /^PRAGMA/ {
+              next
+          }
+          /^BEGIN TRANSACTION/ {
+              next
+          }
+          /^COMMIT/ {
+              next
+          }
+          {
+              print
+          }' apt_trade.sql > apt_trade_mysql.sql
+          mv apt_trade_mysql.sql apt_trade.sql
           
-          # 5. UNIQUE 제약 조건 내의 컬럼들에 키 길이 명시
-          sed -i 's/UNIQUE(`aptNm`/UNIQUE(`aptNm`(255)/g' apt_trade.sql
-          sed -i 's/, `buildYear`/`, `buildYear`(255)/g' apt_trade.sql
-          sed -i 's/, `dealAmount`/`, `dealAmount`(255)/g' apt_trade.sql
-          sed -i 's/, `excluUseAr`/`, `excluUseAr`(255)/g' apt_trade.sql
-          sed -i 's/, `floor`/`, `floor`(255)/g' apt_trade.sql
-          sed -i 's/, `dealYear`/`, `dealYear`(255)/g' apt_trade.sql
-          sed -i 's/, `dealMonth`/`, `dealMonth`(255)/g' apt_trade.sql
-          sed -i 's/, `dealDay`/`, `dealDay`(255)/g' apt_trade.sql
-
       - name: Commit and push DB & SQL files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
