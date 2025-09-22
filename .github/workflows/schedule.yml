@@ -28,15 +28,20 @@ jobs:
           API_KEY: ${{ secrets.SERVICE_KEY }}
         run: |
           python fetch_data.py
-          ls -lh apt_trade.db 
+          ls -lh apt_trade.db
 
-      - name: Convert DB to SQL file # 이 부분을 추가하세요
+      - name: Create SQL dump file
         run: |
           sqlite3 apt_trade.db .dump > apt_trade.sql
-          ls -lh apt_trade.sql 
+          ls -lh apt_trade.sql
 
-      - name: Commit and push DB & SQL files # 이 부분도 수정하세요
+      - name: Replace double quotes with backticks # 이 부분을 추가하세요
+        run: |
+          sed -i 's/"/`/g' apt_trade.sql
+          sed -i 's/ ON CONFLICT REPLACE//' apt_trade.sql
+          
+      - name: Commit and push DB & SQL files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "feat: Update apartment trade data DB and SQL files"
-          file_pattern: 'apt_trade.db apt_trade.sql' # apt_trade.sql 추가
+          file_pattern: 'apt_trade.db apt_trade.sql'
