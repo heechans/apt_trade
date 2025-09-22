@@ -50,21 +50,27 @@ jobs:
           sed -i 's/ ON CONFLICT REPLACE//g' apt_trade.sql
 
           # 4. BLOB/TEXT 컬럼에 키 길이 지정 및 UNIQUE 구문 수정 (MySQL 오류 해결)
-          # aptNm 컬럼의 TEXT 타입을 VARCHAR(255)로 변경
+          # CREATE TABLE 문에서 TEXT를 VARCHAR(255)로 변경
           sed -i 's/`aptNm` TEXT/`aptNm` VARCHAR(255)/g' apt_trade.sql
-          
-          # UNIQUE 제약 조건 내의 aptNm에 키 길이 지정
-          sed -i 's/UNIQUE(`aptNm`/UNIQUE(`aptNm`(255)/g' apt_trade.sql
-          
-          # 다른 TEXT 컬럼들도 MySQL 호환 타입으로 변경
+          sed -i 's/`buildYear` TEXT/`buildYear` VARCHAR(255)/g' apt_trade.sql
           sed -i 's/`dealAmount` TEXT/`dealAmount` VARCHAR(255)/g' apt_trade.sql
           sed -i 's/`excluUseAr` TEXT/`excluUseAr` VARCHAR(255)/g' apt_trade.sql
-          sed -i 's/`buildYear` TEXT/`buildYear` VARCHAR(255)/g' apt_trade.sql
+          sed -i 's/`floor` TEXT/`floor` VARCHAR(255)/g' apt_trade.sql
+          sed -i 's/`dealYear` TEXT/`dealYear` VARCHAR(255)/g' apt_trade.sql
+          sed -i 's/`dealMonth` TEXT/`dealMonth` VARCHAR(255)/g' apt_trade.sql
+          sed -i 's/`dealDay` TEXT/`dealDay` VARCHAR(255)/g' apt_trade.sql
           
-          # UNIQUE 제약 조건 내의 다른 컬럼에 키 길이 지정
-          sed -i 's/`dealAmount`,/`dealAmount`(255),/g' apt_trade.sql
-          sed -i 's/`excluUseAr`,/`excluUseAr`(255),/g' apt_trade.sql
-          sed -i 's/`buildYear`,/`buildYear`(255),/g' apt_trade.sql
+          # UNIQUE 제약 조건 내의 컬럼들에 키 길이 명시
+          sed -i 's/UNIQUE(`aptNm`/UNIQUE(`aptNm`(255)/g' apt_trade.sql
+          sed -i 's/, `buildYear`,/`, `buildYear`(255),/g' apt_trade.sql
+          sed -i 's/, `dealAmount`,/`, `dealAmount`(255),/g' apt_trade.sql
+          sed -i 's/, `excluUseAr`,/`, `excluUseAr`(255),/g' apt_trade.sql
+          sed -i 's/, `floor`,/`, `floor`(255),/g' apt_trade.sql
+          sed -i 's/, `dealYear`,/`, `dealYear`(255),/g' apt_trade.sql
+          sed -i 's/, `dealMonth`,/`, `dealMonth`(255),/g' apt_trade.sql
+          sed -i 's/, `dealDay`)//g' apt_trade.sql # 마지막 컬럼의 괄호와 쉼표 제거
+          sed -i 's/`, `dealDay`)//g' apt_trade.sql # 마지막 컬럼의 괄호와 쉼표 제거 (다시 확인)
+          sed -i 's/`dealDay`)/`dealDay`(255))/g' apt_trade.sql # 최종 괄호 추가
 
       - name: Commit and push DB & SQL files
         uses: stefanzweifel/git-auto-commit-action@v5
