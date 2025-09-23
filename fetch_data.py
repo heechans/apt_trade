@@ -3,7 +3,7 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-# API information (recommend using GitHub Actions secrets)
+# API 정보 (GitHub Actions secrets를 사용할 것을 권장)
 SERVICE_KEY = os.environ.get('API_KEY')
 LAWD_CD = "11680"
 DEAL_YMD = datetime.now().strftime('%Y%m')
@@ -16,7 +16,7 @@ params = {
     'DEAL_YMD': DEAL_YMD, 'pageNo': '1', 'numOfRows': '100'
 }
 
-# SQL file path
+# SQL 파일 경로
 sql_path = 'apt_trade.sql'
 
 def fetch_and_generate_sql():
@@ -48,12 +48,12 @@ def fetch_and_generate_sql():
         # MySQL 호환 데이터 타입 및 백틱 사용
         column_defs = [f'`{col}` VARCHAR(255)' for col in columns]
 
-        # UNIQUE 제약 조건 정의 (오류를 방지하기 위해 키 길이 지정)
+        # UNIQUE 제약 조건 정의 (키 길이를 191로 지정하여 MySQL 제한 해결)
         unique_columns = ['aptNm', 'buildYear', 'dealAmount', 'excluUseAr', 'floor', 'dealYear', 'dealMonth', 'dealDay']
-        unique_constraint_cols = [f'`{col}`(255)' for col in unique_columns if f'{col}' in columns]
+        unique_constraint_cols = [f'`{col}`(191)' for col in unique_columns if f'{col}' in columns]
         unique_constraint = f'UNIQUE({", ".join(unique_constraint_cols)})'
 
-        # f-string 오류가 수정된 부분
+        # CREATE TABLE 문 완성
         create_table_sql = f'CREATE TABLE `apartment_trades` ({", ".join(column_defs)}, {unique_constraint});'
 
         # SQL 파일에 쓰기 시작
@@ -70,7 +70,7 @@ def fetch_and_generate_sql():
                     if val is None:
                         values.append('NULL')
                     else:
-                        # 수정된 부분: f-string 밖에서 먼저 replace를 수행
+                        # SQL 인젝션 방지를 위해 문자열 이스케이프
                         escaped_val = val.replace("'", "''")
                         values.append(f"'{escaped_val}'")
 
