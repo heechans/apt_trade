@@ -1,13 +1,11 @@
 import os
 import requests
 import xml.etree.ElementTree as ET
-import sqlite3
 from datetime import datetime
 
 # API 정보 (GitHub Actions secrets를 사용할 것을 권장)
 SERVICE_KEY = os.environ.get('API_KEY')
 LAWD_CD = "11680"
-# DEAL_YMD는 현재 날짜를 기반으로 자동으로 설정
 DEAL_YMD = datetime.now().strftime('%Y%m')
 
 # API URL
@@ -17,32 +15,28 @@ params = {
     'LAWD_CD': LAWD_CD,
     'DEAL_YMD': DEAL_YMD,
     'pageNo': '1',
-    'numOfRows': '10000'
+    'numOfRows': '100'
 }
 
-# DB 파일 경로
-db_path = 'apt_trade.db'
+# SQL 파일 경로
+sql_path = 'apt_trade.sql'
 
-def fetch_and_save_data():
+def fetch_and_generate_sql():
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
-
-        # XML 파싱 (네임스페이스 제거)
-        xml_string = response.content.decode('utf-8')
-        root = ET.fromstring(xml_string)
-
-        # XML 구조에 맞게 <item> 태그 찾기
+        
+        root = ET.fromstring(response.content)
         items_node = root.find('.//items')
+        
         if items_node is None:
-            print("XML structure not as expected: no <items> tag found.")
+            print("No items tag found in XML response.")
             return
 
         data_list = []
         for item in items_node.findall('item'):
             data = {}
             for child in item:
-                # 불필요한 공백 제거
                 data[child.tag] = child.text.strip() if child.text else ''
             data_list.append(data)
 
@@ -50,49 +44,56 @@ def fetch_and_save_data():
             print("No data received from API.")
             return
 
-        # SQLite DB에 연결 및 저장
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # 테이블 생성
-        # XML <item> 태그의 모든 자식 태그를 열 이름으로 사용
-        if data_list:
-            columns = data_list[0].keys()
-            column_defs = [f'"{col}" TEXT' for col in columns]
-            
-            # 고유성 보장을 위한 UNIQUE 제약조건 추가
-            unique_cols = ['aptNm', 'buildYear', 'dealAmount', 'excluUseAr', 'floor', 'dealYear', 'dealMonth', 'dealDay']
-            unique_constraint = ', '.join([f'"{col}"' for col in unique_cols])
-            
-            create_table_sql = f'''
-                CREATE TABLE IF NOT EXISTS apartment_trades (
-                    {', '.join(column_defs)},
-                    UNIQUE({unique_constraint}) ON CONFLICT REPLACE
-                )
-            '''
-            cursor.execute(create_table_sql)
-
-        # 데이터 삽입
+        # MySQL CREATE TABLE 문 생성
+        # XML의 모든 태그를 컬럼으로 사용
         columns = list(data_list[0].keys())
-        insert_sql = f'''
-            INSERT OR REPLACE INTO apartment_trades ({', '.join([f'"{col}"' for col in columns])}) 
-            VALUES ({', '.join(['?' for _ in columns])})
-        '''
+        # MySQL 호환 데이터 타입 및 백틱 사용
+        column_defs = [f'`{col}` VARCHAR(255)' for col in columns]
         
-        for row in data_list:
-            values = [row.get(col) for col in columns]
-            cursor.execute(insert_sql, values)
+        # UNIQUE 제약 조건 정의 (오류를 방지하기 위해 키 길이 지정)
+        unique_columns = ['aptNm', 'buildYear', 'dealAmount', 'excluUseAr', 'floor', 'dealYear', 'dealMonth', 'dealDay']
+        unique_constraint_cols = [f'`{col}`(255)' for col in unique_columns if f'{col}' in columns]
+        unique_constraint = f'UNIQUE({", ".join(unique_constraint_cols)})'
+        
+        create_table_sql = f'CREATE TABLE `apartment_trades` (\n    {",\n    ".join(column_defs)},\n    {unique_constraint}\n);'
+        
+        # SQL 파일에 쓰기 시작
+        with open(sql_path, 'w', encoding='utf-8') as f:
+            f.write(create_table_sql + "\n\n")
 
-        conn.commit()
-        conn.close()
-        print(f"Successfully saved {len(data_list)} records to {db_path}")
+            # INSERT 문 생성 및 쓰기
+            insert_sql_header = f'INSERT INTO `apartment_trades` ({", ".join([f"`{col}`" for col in columns])}) VALUES'
+            
+            for i, row in enumerate(data_list):
+                values = []
+                for col in columns:
+                    val = row.get(col)
+                    if val is None:
+                        values.append('NULL')
+                    else:
+                        # SQL 인젝션 방지를 위한 처리 및 특수 문자 이스케이프
+                        values.append(f"'{val.replace('\'', '\\\'')}'")
+
+                insert_line = f'({", ".join(values)})'
+                if i < len(data_list) - 1:
+                    insert_line += ','
+                else:
+                    insert_line += ';'
+                
+                # INSERT 문 합치기
+                if i == 0:
+                    f.write(insert_sql_header + "\n" + insert_line + "\n")
+                else:
+                    f.write(insert_line + "\n")
+
+        print(f"Successfully generated {sql_path} with {len(data_list)} records.")
 
     except requests.exceptions.RequestException as e:
         print(f"API request failed: {e}")
     except ET.ParseError as e:
         print(f"XML parsing failed: {e}")
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 if __name__ == '__main__':
-    fetch_and_save_data()
+    fetch_and_generate_sql()
