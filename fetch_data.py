@@ -48,9 +48,15 @@ def fetch_and_generate_sql():
         columns = list(data_list[0].keys())
         column_defs = [f'`{col}` VARCHAR(255)' for col in columns]
 
-        # UNIQUE 제약 조건 정의 (필요한 컬럼만 포함하여 키 길이 제한 해결)
-        unique_columns = ['aptNm', 'dealYear', 'dealMonth', 'dealDay', 'excluUseAr', 'floor']
-        unique_constraint_cols = [f'`{col}`(191)' for col in unique_columns if f'{col}' in columns]
+        # UNIQUE 제약 조건 정의 (각 컬럼의 실제 길이에 맞게 키 길이 조정)
+        unique_constraint_cols = [
+            '`aptNm`(191)',
+            '`dealYear`(4)',
+            '`dealMonth`(2)',
+            '`dealDay`(2)',
+            '`excluUseAr`(10)',
+            '`floor`(5)'
+        ]
         unique_constraint = f'UNIQUE({", ".join(unique_constraint_cols)})'
 
         create_table_sql = f'CREATE TABLE `apartment_trades` ({", ".join(column_defs)}, {unique_constraint});'
