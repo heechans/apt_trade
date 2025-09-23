@@ -48,23 +48,21 @@ def fetch_and_generate_sql():
         columns = list(data_list[0].keys())
         column_defs = [f'`{col}` VARCHAR(255)' for col in columns]
 
-        # UNIQUE 제약 조건 정의 (각 컬럼의 실제 길이에 맞게 키 길이 조정)
-        unique_constraint_cols = [
-            '`aptNm`(191)',
-            '`dealYear`(4)',
-            '`dealMonth`(2)',
-            '`dealDay`(2)',
-            '`excluUseAr`(10)',
-            '`floor`(5)'
-        ]
+        # UNIQUE 제약 조건 정의
+        unique_columns = ['aptNm', 'dealYear', 'dealMonth', 'dealDay', 'excluUseAr', 'floor']
+        unique_constraint_cols = [f'`{col}`(191)' for col in unique_columns if f'{col}' in columns]
         unique_constraint = f'UNIQUE({", ".join(unique_constraint_cols)})'
 
-        create_table_sql = f'CREATE TABLE `apartment_trades` ({", ".join(column_defs)}, {unique_constraint});'
+        create_table_sql = f'CREATE TABLE IF NOT EXISTS `apartment_trades` ({", ".join(column_defs)}, {unique_constraint});'
 
+        # ON DUPLICATE KEY UPDATE 문을 위한 컬럼 목록
+        update_cols = [f'`{col}`=VALUES(`{col}`)' for col in columns]
+        
         # SQL 파일에 쓰기 시작
         with open(sql_path, 'w', encoding='utf-8') as f:
             f.write(create_table_sql + "\n\n")
 
+            # INSERT ... ON DUPLICATE KEY UPDATE 문 생성 및 쓰기
             insert_sql_header = f'INSERT INTO `apartment_trades` ({", ".join([f"`{col}`" for col in columns])}) VALUES'
             
             for i, row in enumerate(data_list):
@@ -78,10 +76,12 @@ def fetch_and_generate_sql():
                         values.append(f"'{escaped_val}'")
 
                 insert_line = f'({", ".join(values)})'
+                
+                # 마지막 행에만 ON DUPLICATE KEY UPDATE 구문 추가
                 if i < len(data_list) - 1:
                     insert_line += ','
                 else:
-                    insert_line += ';'
+                    insert_line += f' ON DUPLICATE KEY UPDATE {", ".join(update_cols)};'
                 
                 if i == 0:
                     f.write(insert_sql_header + "\n" + insert_line + "\n")
