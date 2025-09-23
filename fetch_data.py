@@ -13,7 +13,9 @@ url = f'http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptT
 params = {
     'serviceKey': SERVICE_KEY,
     'LAWD_CD': LAWD_CD,
-    'DEAL_YMD': DEAL_YMD, 'pageNo': '1', 'numOfRows': '100'
+    'DEAL_YMD': DEAL_YMD,
+    'pageNo': '1',
+    'numOfRows': '100'
 }
 
 # SQL 파일 경로
@@ -43,24 +45,20 @@ def fetch_and_generate_sql():
             return
 
         # MySQL CREATE TABLE 문 생성
-        # XML 태그를 컬럼으로 사용
         columns = list(data_list[0].keys())
-        # MySQL 호환 데이터 타입 및 백틱 사용
         column_defs = [f'`{col}` VARCHAR(255)' for col in columns]
 
-        # UNIQUE 제약 조건 정의 (키 길이를 191로 지정하여 MySQL 제한 해결)
-        unique_columns = ['aptNm', 'buildYear', 'dealAmount', 'excluUseAr', 'floor', 'dealYear', 'dealMonth', 'dealDay']
+        # UNIQUE 제약 조건 정의 (필요한 컬럼만 포함하여 키 길이 제한 해결)
+        unique_columns = ['aptNm', 'dealYear', 'dealMonth', 'dealDay', 'excluUseAr', 'floor']
         unique_constraint_cols = [f'`{col}`(191)' for col in unique_columns if f'{col}' in columns]
         unique_constraint = f'UNIQUE({", ".join(unique_constraint_cols)})'
 
-        # CREATE TABLE 문 완성
         create_table_sql = f'CREATE TABLE `apartment_trades` ({", ".join(column_defs)}, {unique_constraint});'
 
         # SQL 파일에 쓰기 시작
         with open(sql_path, 'w', encoding='utf-8') as f:
             f.write(create_table_sql + "\n\n")
 
-            # INSERT 문 생성 및 쓰기
             insert_sql_header = f'INSERT INTO `apartment_trades` ({", ".join([f"`{col}`" for col in columns])}) VALUES'
             
             for i, row in enumerate(data_list):
@@ -70,7 +68,6 @@ def fetch_and_generate_sql():
                     if val is None:
                         values.append('NULL')
                     else:
-                        # SQL 인젝션 방지를 위해 문자열 이스케이프
                         escaped_val = val.replace("'", "''")
                         values.append(f"'{escaped_val}'")
 
@@ -80,7 +77,6 @@ def fetch_and_generate_sql():
                 else:
                     insert_line += ';'
                 
-                # INSERT 문 합치기
                 if i == 0:
                     f.write(insert_sql_header + "\n" + insert_line + "\n")
                 else:
