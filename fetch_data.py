@@ -3,7 +3,7 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-# API 정보 (GitHub Actions secrets를 사용할 것을 권장)
+# API information (recommend using GitHub Actions secrets)
 SERVICE_KEY = os.environ.get('API_KEY')
 LAWD_CD = "11680"
 DEAL_YMD = datetime.now().strftime('%Y%m')
@@ -13,12 +13,10 @@ url = f'http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptT
 params = {
     'serviceKey': SERVICE_KEY,
     'LAWD_CD': LAWD_CD,
-    'DEAL_YMD': DEAL_YMD,
-    'pageNo': '1',
-    'numOfRows': '100'
+    'DEAL_YMD': DEAL_YMD, 'pageNo': '1', 'numOfRows': '100'
 }
 
-# SQL 파일 경로
+# SQL file path
 sql_path = 'apt_trade.sql'
 
 def fetch_and_generate_sql():
@@ -72,8 +70,9 @@ def fetch_and_generate_sql():
                     if val is None:
                         values.append('NULL')
                     else:
-                        # SQL 인젝션 방지를 위한 처리 및 특수 문자 이스케이프
-                        values.append(f"'{val.replace('\'', '\\\'')}'")
+                        # 수정된 부분: f-string 밖에서 먼저 replace를 수행
+                        escaped_val = val.replace("'", "''")
+                        values.append(f"'{escaped_val}'")
 
                 insert_line = f'({", ".join(values)})'
                 if i < len(data_list) - 1:
